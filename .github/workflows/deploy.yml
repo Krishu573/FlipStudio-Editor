@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -16,9 +16,6 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
@@ -35,14 +32,23 @@ jobs:
       - name: Build Vite application
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Deploy to gh-pages branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          branch: gh-pages
 
-      - name: Upload artifact
+      - name: Setup Pages (Actions mode fallback)
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+
+      - name: Upload artifact (Actions mode fallback)
         uses: actions/upload-pages-artifact@v3
+        continue-on-error: true
         with:
           path: './dist'
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (Actions mode fallback)
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
