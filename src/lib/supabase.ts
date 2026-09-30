@@ -1,11 +1,12 @@
+import { useState, useEffect, useCallback } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // User's Supabase Project Credentials
-const SUPABASE_URL = 
+export const SUPABASE_URL = 
   import.meta.env.VITE_SUPABASE_URL || 
   'https://vichklqnaaxjaiqlkwpp.supabase.co';
 
-const SUPABASE_ANON_KEY = 
+export const SUPABASE_ANON_KEY = 
   import.meta.env.VITE_SUPABASE_ANON_KEY || 
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpY2hrbHFuYWF4amFpcWxrd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0Mzg5MTYsImV4cCI6MjEwNjAxNDkxNn0.wFvVHbA62jylhtG9K7YMOv9G9x9mefJkxaMpi5Uqph0';
 
@@ -19,6 +20,9 @@ try {
 }
 
 export const supabase: SupabaseClient | null = client;
+
+// Export isSupabaseConfigured both as a boolean and as a helper function
+export const isSupabaseConfigured: boolean = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 export interface UserProfile {
   id?: string;
@@ -138,4 +142,55 @@ export async function fetchSupabaseUserProfile(): Promise<UserProfile> {
     console.warn('Error fetching Supabase profile:', err);
     return DEFAULT_USER_PROFILE;
   }
+}
+
+/**
+ * React Hook for Supabase User Profile
+ * Used by App.tsx and UserProfileBadge.tsx
+ */
+export function useSupabaseProfile() {
+  const [profile, setProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refreshProfile = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchSupabaseUserProfile();
+      setProfile(data);
+    } catch (err: any) {
+      setError(err);
+      setProfile(DEFAULT_USER_PROFILE);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshProfile();
+
+    if (supabase) {
+      try {
+        const authResponse = supabase.auth.onAuthStateChange(() => {
+          refreshProfile();
+        });
+        return () => {
+          authResponse?.data?.subscription?.unsubscribe?.();
+        };
+      } catch (err) {
+        console.warn('Supabase auth listener error:', err);
+      }
+    }
+  }, [refreshProfile]);
+
+  return {
+    profile,
+    userProfile: profile,
+    loading,
+    isLoading: loading,
+    error,
+    refreshProfile,
+    isConfigured: isSupabaseConfigured,
+    isSupabaseConfigured,
+  };
 }

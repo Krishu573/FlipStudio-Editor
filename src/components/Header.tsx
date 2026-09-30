@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { BookSettings } from '../types/flipbook';
 import { fetchSupabaseUserProfile, UserProfile, DEFAULT_USER_PROFILE, supabase } from '../lib/supabase';
+import { UserProfileBadge } from './UserProfileBadge';
 
 interface HeaderProps {
   settings: BookSettings;
@@ -211,43 +212,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className={`h-5 w-px ${isDark ? 'bg-[#1e293b]' : 'bg-slate-200'}`} />
 
         {/* User Profile Container (Name on the left hand side of the profile picture, beside Export Flipbook) */}
-        <div className="flex items-center space-x-2.5 p-1 pl-2.5 rounded-lg border transition-all text-left">
-          {/* User Name on the left hand side of the image */}
-          <div className="flex flex-col text-right leading-none">
-            <span className={`text-xs font-semibold tracking-tight ${
-              isDark ? 'text-white' : 'text-slate-800'
-            }`}>
-              {isLoadingProfile ? 'Loading...' : userProfile.name}
-            </span>
-            <span className="text-[10px] mt-0.5 flex items-center justify-end space-x-1">
-              <span className="text-emerald-500 font-medium flex items-center space-x-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Supabase</span>
-              </span>
-            </span>
-          </div>
-
-          {/* User Profile Picture */}
-          <div className="relative flex-shrink-0">
-            <img
-              src={userProfile.avatar_url}
-              alt={userProfile.name}
-              className={`w-8 h-8 rounded-full border border-[#8083ff]/50 object-cover ring-2 ${
-                isDark ? 'ring-[#0b1326]' : 'ring-white'
-              }`}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80';
-              }}
-            />
-            <span
-              className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 bg-emerald-500 ${
-                isDark ? 'ring-[#0b1326]' : 'ring-white'
-              }`}
-              title="Supabase Online"
-            />
-          </div>
-        </div>
+        <UserProfileBadge theme={theme} customProfile={userProfile} />
       </div>
     </header>
   );
