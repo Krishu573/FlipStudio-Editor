@@ -1,0 +1,6 @@
+{
+  "name": "FlipCraft Studio",
+  "description": "Professional 3D Digital Flipbook & Editorial Publishing Suite with realistic page curl, tactile materials, and interactive web engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
