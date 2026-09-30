@@ -52,12 +52,16 @@ export const Header: React.FC<HeaderProps> = ({
     loadProfile();
 
     if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-        loadProfile();
-      });
-      return () => {
-        subscription.unsubscribe();
-      };
+      try {
+        const authResponse = supabase.auth.onAuthStateChange(() => {
+          loadProfile();
+        });
+        return () => {
+          authResponse?.data?.subscription?.unsubscribe?.();
+        };
+      } catch (err) {
+        console.warn('Supabase auth state listener error:', err);
+      }
     }
   }, []);
 

@@ -9,7 +9,16 @@ const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpY2hrbHFuYWF4amFpcWxrd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0Mzg5MTYsImV4cCI6MjEwNjAxNDkxNn0.wFvVHbA62jylhtG9K7YMOv9G9x9mefJkxaMpi5Uqph0';
 
-export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let client: SupabaseClient | null = null;
+try {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) {
+  console.warn('Failed to initialize Supabase client:', e);
+}
+
+export const supabase: SupabaseClient | null = client;
 
 export interface UserProfile {
   id?: string;
@@ -29,26 +38,33 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
 };
 
 /**
- * Fetch user profile from Supabase
- * Tries Supabase Auth, profiles table, users table, and user_profiles table
+ * Fetch user profile from Supabase with safe fallbacks
  */
 export async function fetchSupabaseUserProfile(): Promise<UserProfile> {
+  if (!supabase) {
+    return DEFAULT_USER_PROFILE;
+  }
+
   try {
     // 1. Check Supabase Auth session first
-    const { data: authData } = await supabase.auth.getUser();
-    if (authData?.user) {
-      const u = authData.user;
-      const meta = u.user_metadata || {};
-      const name = meta.full_name || meta.name || u.email?.split('@')[0] || DEFAULT_USER_PROFILE.name;
-      const avatar_url = meta.avatar_url || meta.picture || DEFAULT_USER_PROFILE.avatar_url;
-      return {
-        id: u.id,
-        name,
-        email: u.email,
-        avatar_url,
-        role: meta.role || 'Member',
-        isFromSupabase: true,
-      };
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        const u = authData.user;
+        const meta = u.user_metadata || {};
+        const name = meta.full_name || meta.name || u.email?.split('@')[0] || DEFAULT_USER_PROFILE.name;
+        const avatar_url = meta.avatar_url || meta.picture || DEFAULT_USER_PROFILE.avatar_url;
+        return {
+          id: u.id,
+          name,
+          email: u.email,
+          avatar_url,
+          role: meta.role || 'Publisher',
+          isFromSupabase: true,
+        };
+      }
+    } catch (e) {
+      console.warn('Supabase auth check failed:', e);
     }
 
     // 2. Try fetching from 'profiles' table
@@ -70,7 +86,7 @@ export async function fetchSupabaseUserProfile(): Promise<UserProfile> {
         };
       }
     } catch {
-      // Ignore if table does not exist
+      // Ignore
     }
 
     // 3. Try fetching from 'users' table
@@ -92,7 +108,7 @@ export async function fetchSupabaseUserProfile(): Promise<UserProfile> {
         };
       }
     } catch {
-      // Ignore if table does not exist
+      // Ignore
     }
 
     // 4. Try fetching from 'user_profiles' table
@@ -117,7 +133,6 @@ export async function fetchSupabaseUserProfile(): Promise<UserProfile> {
       // Ignore
     }
 
-    // Return default profile backed by Supabase configuration
     return DEFAULT_USER_PROFILE;
   } catch (err) {
     console.warn('Error fetching Supabase profile:', err);
