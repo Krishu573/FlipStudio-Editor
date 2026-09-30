@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { BookSettings, CoverType, SurfaceSheen, WorkflowTab } from '../types/flipbook';
 import { UserProfile } from '../lib/supabase';
-import { UserProfileBadge } from './UserProfileBadge';
 
 interface LeftSidebarProps {
   settings: BookSettings;
@@ -108,22 +107,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     <aside className={`w-full md:w-[380px] lg:w-[420px] shrink-0 border-r flex flex-col h-[calc(100vh-100px)] overflow-hidden select-none transition-colors duration-200 ${
       isDark ? 'border-[#1e293b] bg-[#0b1326] text-[#dae2fd]' : 'border-slate-200 bg-white text-slate-800'
     }`}>
-      {/* User Profile Card from Supabase */}
-      {userProfile && (
-        <div className={`p-3 border-b transition-colors ${
-          isDark ? 'border-[#1e293b] bg-[#0d1527]/80' : 'border-slate-200 bg-slate-50/60'
-        }`}>
-          <UserProfileBadge
-            profile={userProfile}
-            theme={theme}
-            variant="sidebar"
-            loading={loadingProfile}
-            onUpdateProfile={onUpdateProfile}
-            onRefresh={onRefreshProfile}
-          />
-        </div>
-      )}
-
       {/* Workflow Navigation Rail */}
       <div className={`border-b px-3 py-2 flex items-center justify-between ${
         isDark ? 'border-[#1e293b] bg-[#0d1527]' : 'border-slate-200 bg-slate-50'
