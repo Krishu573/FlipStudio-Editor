@@ -9,6 +9,7 @@ import {
 import { BookSettings } from '../types/flipbook';
 import { fetchSupabaseUserProfile, UserProfile, DEFAULT_USER_PROFILE, supabase } from '../lib/supabase';
 import { UserProfileBadge } from './UserProfileBadge';
+import { AccountAuthModal } from './AccountAuthModal';
 
 interface HeaderProps {
   settings: BookSettings;
@@ -36,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Supabase User Profile State
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState<boolean>(false);
 
   const loadProfile = async () => {
     setIsLoadingProfile(true);
@@ -212,8 +214,21 @@ export const Header: React.FC<HeaderProps> = ({
         <div className={`h-5 w-px ${isDark ? 'bg-[#1e293b]' : 'bg-slate-200'}`} />
 
         {/* User Profile Container (Name on the left hand side of the profile picture, beside Export Flipbook) */}
-        <UserProfileBadge theme={theme} customProfile={userProfile} />
+        <UserProfileBadge 
+          theme={theme} 
+          customProfile={userProfile} 
+          onClick={() => setIsAccountModalOpen(true)}
+        />
       </div>
+
+      {/* Account & Profile Switching Modal */}
+      <AccountAuthModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        currentProfile={userProfile}
+        onProfileUpdated={(updated) => setUserProfile(updated)}
+        theme={theme}
+      />
     </header>
   );
 };

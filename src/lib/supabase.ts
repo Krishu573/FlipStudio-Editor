@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 
 // User's Supabase Project Credentials
 export const SUPABASE_URL = 
@@ -13,7 +13,13 @@ export const SUPABASE_ANON_KEY =
 let client: SupabaseClient | null = null;
 try {
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      }
+    });
   }
 } catch (e) {
   console.warn('Failed to initialize Supabase client:', e);
@@ -21,7 +27,6 @@ try {
 
 export const supabase: SupabaseClient | null = client;
 
-// Export isSupabaseConfigured both as a boolean and as a helper function
 export const isSupabaseConfigured: boolean = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 export interface UserProfile {
@@ -31,6 +36,15 @@ export interface UserProfile {
   avatar_url: string;
   role?: string;
   isFromSupabase: boolean;
+  isAuthenticated?: boolean;
+}
+
+/**
+ * Generate a dynamic, unique avatar based on the user's name or email
+ */
+export function getAvatarUrlForUser(name: string, seed?: string): string {
+  const cleanSeed = encodeURIComponent(seed || name || 'User');
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${cleanSeed}&backgroundColor=4f46e5,6366f1,818cf8,0ea5e9,3b82f6&textColor=ffffff`;
 }
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
@@ -39,114 +53,193 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80',
   role: 'Publisher',
   isFromSupabase: true,
+  isAuthenticated: false,
 };
 
+const LOCAL_STORAGE_PROFILE_KEY = 'flipstudio_active_profile';
+
 /**
- * Fetch user profile from Supabase with safe fallbacks
+ * Fetch user profile from Supabase Auth with dynamic fallback
  */
 export async function fetchSupabaseUserProfile(): Promise<UserProfile> {
+  // 1. Check if user saved a custom profile override locally
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_PROFILE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.name) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore local storage error
+  }
+
   if (!supabase) {
     return DEFAULT_USER_PROFILE;
   }
 
   try {
-    // 1. Check Supabase Auth session first
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData?.user) {
-        const u = authData.user;
-        const meta = u.user_metadata || {};
-        const name = meta.full_name || meta.name || u.email?.split('@')[0] || DEFAULT_USER_PROFILE.name;
-        const avatar_url = meta.avatar_url || meta.picture || DEFAULT_USER_PROFILE.avatar_url;
-        return {
-          id: u.id,
-          name,
-          email: u.email,
-          avatar_url,
-          role: meta.role || 'Publisher',
-          isFromSupabase: true,
-        };
+    // 2. Check Supabase Auth session first
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (!authError && authData?.user) {
+      const u: User = authData.user;
+      const meta = u.user_metadata || {};
+      
+      // Determine name from metadata or email username
+      let displayName = meta.full_name || meta.name || meta.display_name;
+      if (!displayName && u.email) {
+        const emailPrefix = u.email.split('@')[0];
+        // Capitalize first letter
+        displayName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
       }
-    } catch (e) {
-      console.warn('Supabase auth check failed:', e);
+      if (!displayName) {
+        displayName = 'User ' + u.id.slice(0, 5);
+      }
+
+      // Generate distinct avatar if no custom image is supplied
+      const avatarUrl = meta.avatar_url || meta.picture || getAvatarUrlForUser(displayName, u.email || u.id);
+
+      return {
+        id: u.id,
+        name: displayName,
+        email: u.email,
+        avatar_url: avatarUrl,
+        role: meta.role || 'Member',
+        isFromSupabase: true,
+        isAuthenticated: true,
+      };
+    }
+  } catch (e) {
+    console.warn('Supabase auth session fetch failed:', e);
+  }
+
+  return DEFAULT_USER_PROFILE;
+}
+
+/**
+ * Sign In with Supabase Email & Password
+ */
+export async function signInWithSupabase(email: string, password: string): Promise<{ success: boolean; error?: string; profile?: UserProfile }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase is not configured' };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
     }
 
-    // 2. Try fetching from 'profiles' table
-    try {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .limit(1);
+    if (data.user) {
+      const meta = data.user.user_metadata || {};
+      const displayName = meta.full_name || meta.name || email.split('@')[0];
+      const avatarUrl = meta.avatar_url || meta.picture || getAvatarUrlForUser(displayName, email);
 
-      if (!error && profiles && profiles.length > 0) {
-        const p = profiles[0];
-        return {
-          id: p.id,
-          name: p.full_name || p.name || p.username || p.display_name || DEFAULT_USER_PROFILE.name,
-          email: p.email || DEFAULT_USER_PROFILE.email,
-          avatar_url: p.avatar_url || p.profile_picture || p.image || p.photo_url || DEFAULT_USER_PROFILE.avatar_url,
-          role: p.role || 'Publisher',
-          isFromSupabase: true,
-        };
+      const profile: UserProfile = {
+        id: data.user.id,
+        name: displayName,
+        email: data.user.email,
+        avatar_url: avatarUrl,
+        role: meta.role || 'Publisher',
+        isFromSupabase: true,
+        isAuthenticated: true,
+      };
+
+      try {
+        localStorage.setItem(LOCAL_STORAGE_PROFILE_KEY, JSON.stringify(profile));
+      } catch {
+        // Ignore
       }
+
+      return { success: true, profile };
+    }
+
+    return { success: false, error: 'User data not returned' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to sign in' };
+  }
+}
+
+/**
+ * Sign Up with Supabase Email & Password
+ */
+export async function signUpWithSupabase(email: string, password: string, name: string): Promise<{ success: boolean; error?: string; profile?: UserProfile }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase is not configured' };
+  }
+
+  try {
+    const avatarUrl = getAvatarUrlForUser(name, email);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          name: name,
+          avatar_url: avatarUrl,
+        }
+      }
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const profile: UserProfile = {
+      id: data.user?.id || 'new-user',
+      name: name || email.split('@')[0],
+      email,
+      avatar_url: avatarUrl,
+      role: 'Publisher',
+      isFromSupabase: true,
+      isAuthenticated: true,
+    };
+
+    try {
+      localStorage.setItem(LOCAL_STORAGE_PROFILE_KEY, JSON.stringify(profile));
     } catch {
       // Ignore
     }
 
-    // 3. Try fetching from 'users' table
-    try {
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('*')
-        .limit(1);
+    return { success: true, profile };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to sign up' };
+  }
+}
 
-      if (!error && users && users.length > 0) {
-        const u = users[0];
-        return {
-          id: u.id,
-          name: u.full_name || u.name || u.username || DEFAULT_USER_PROFILE.name,
-          email: u.email || DEFAULT_USER_PROFILE.email,
-          avatar_url: u.avatar_url || u.profile_picture || u.image || DEFAULT_USER_PROFILE.avatar_url,
-          role: u.role || 'Publisher',
-          isFromSupabase: true,
-        };
-      }
-    } catch {
-      // Ignore
+/**
+ * Sign Out from Supabase
+ */
+export async function signOutFromSupabase(): Promise<void> {
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_PROFILE_KEY);
+    if (supabase) {
+      await supabase.auth.signOut();
     }
+  } catch (e) {
+    console.warn('Sign out error:', e);
+  }
+}
 
-    // 4. Try fetching from 'user_profiles' table
-    try {
-      const { data: uProfiles, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .limit(1);
-
-      if (!error && uProfiles && uProfiles.length > 0) {
-        const up = uProfiles[0];
-        return {
-          id: up.id,
-          name: up.full_name || up.name || DEFAULT_USER_PROFILE.name,
-          email: up.email || DEFAULT_USER_PROFILE.email,
-          avatar_url: up.avatar_url || up.profile_picture || DEFAULT_USER_PROFILE.avatar_url,
-          role: up.role || 'Publisher',
-          isFromSupabase: true,
-        };
-      }
-    } catch {
-      // Ignore
-    }
-
-    return DEFAULT_USER_PROFILE;
-  } catch (err) {
-    console.warn('Error fetching Supabase profile:', err);
-    return DEFAULT_USER_PROFILE;
+/**
+ * Save manual custom profile update (name, avatar, email)
+ */
+export function saveLocalUserProfile(profile: UserProfile): void {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_PROFILE_KEY, JSON.stringify(profile));
+  } catch (e) {
+    console.warn('Failed to save profile to localStorage:', e);
   }
 }
 
 /**
  * React Hook for Supabase User Profile
- * Used by App.tsx and UserProfileBadge.tsx
  */
 export function useSupabaseProfile() {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
@@ -171,11 +264,31 @@ export function useSupabaseProfile() {
 
     if (supabase) {
       try {
-        const authResponse = supabase.auth.onAuthStateChange(() => {
-          refreshProfile();
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) {
+            const u = session.user;
+            const meta = u.user_metadata || {};
+            const displayName = meta.full_name || meta.name || u.email?.split('@')[0] || 'User';
+            const avatarUrl = meta.avatar_url || meta.picture || getAvatarUrlForUser(displayName, u.email || u.id);
+            const newProfile: UserProfile = {
+              id: u.id,
+              name: displayName,
+              email: u.email,
+              avatar_url: avatarUrl,
+              role: meta.role || 'Publisher',
+              isFromSupabase: true,
+              isAuthenticated: true,
+            };
+            setProfile(newProfile);
+            saveLocalUserProfile(newProfile);
+          } else {
+            // Signed out: reset
+            refreshProfile();
+          }
         });
+
         return () => {
-          authResponse?.data?.subscription?.unsubscribe?.();
+          authListener?.subscription?.unsubscribe?.();
         };
       } catch (err) {
         console.warn('Supabase auth listener error:', err);
