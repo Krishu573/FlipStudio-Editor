@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://krishu573.github.io/FlipStudio-Editor/sitemap.xml
