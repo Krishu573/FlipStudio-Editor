@@ -10,6 +10,7 @@ import { BookSettings } from '../types/flipbook';
 import { fetchSupabaseUserProfile, UserProfile, DEFAULT_USER_PROFILE, supabase } from '../lib/supabase';
 import { UserProfileBadge } from './UserProfileBadge';
 import { AccountAuthModal } from './AccountAuthModal';
+import { FlipStudioLogo } from './FlipStudioLogo';
 
 interface HeaderProps {
   settings: BookSettings;
@@ -20,6 +21,10 @@ interface HeaderProps {
   theme: 'dark' | 'light';
   setTheme: (t: 'dark' | 'light') => void;
   hasUploaded?: boolean;
+  userProfile?: UserProfile;
+  loadingProfile?: boolean;
+  onUpdateProfile?: (updates: Partial<UserProfile>) => void;
+  onRefreshProfile?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,11 +36,15 @@ export const Header: React.FC<HeaderProps> = ({
   theme,
   setTheme,
   hasUploaded = false,
+  userProfile: propUserProfile,
+  onUpdateProfile,
+  onRefreshProfile,
 }) => {
   const isDark = theme === 'dark';
 
   // Supabase User Profile State
-  const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
+  const [internalProfile, setInternalProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
+  const userProfile = propUserProfile || internalProfile;
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState<boolean>(false);
 
@@ -43,9 +52,9 @@ export const Header: React.FC<HeaderProps> = ({
     setIsLoadingProfile(true);
     try {
       const profile = await fetchSupabaseUserProfile();
-      setUserProfile(profile);
+      setInternalProfile(profile);
     } catch {
-      setUserProfile(DEFAULT_USER_PROFILE);
+      setInternalProfile(DEFAULT_USER_PROFILE);
     } finally {
       setIsLoadingProfile(false);
     }
@@ -76,11 +85,11 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center space-x-4">
         {/* Brand Logo */}
         <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-[#494bd6] to-[#8083ff] flex items-center justify-center text-white shadow-md shadow-indigo-900/30">
-            <Layers className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-[#060c1c] border border-cyan-500/30 flex items-center justify-center p-0.5 shadow-md shadow-cyan-950/60 overflow-hidden group cursor-pointer transition-transform hover:scale-105">
+            <FlipStudioLogo className="w-full h-full" />
           </div>
           <span className={`font-bold text-base tracking-tight font-['Plus_Jakarta_Sans'] ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            Flip<span className={isDark ? 'text-[#c0c1ff] font-medium' : 'text-[#494bd6] font-medium'}>Studio</span>
+            Flip<span className={isDark ? 'text-[#38bdf8] font-semibold' : 'text-[#0284c7] font-semibold'}>Studio</span>
           </span>
         </div>
 
@@ -226,7 +235,10 @@ export const Header: React.FC<HeaderProps> = ({
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
         currentProfile={userProfile}
-        onProfileUpdated={(updated) => setUserProfile(updated)}
+        onProfileUpdated={(updated) => {
+          setInternalProfile(updated);
+          onUpdateProfile?.(updated);
+        }}
         theme={theme}
       />
     </header>

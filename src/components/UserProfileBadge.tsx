@@ -34,7 +34,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
           ? 'border-[#1e293b] hover:border-[#8083ff]/40 hover:bg-[#131d35]' 
           : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
       }`}
-      title="Click to manage account, change name, or switch user"
+      title="Click to edit profile name"
     >
       {/* User Name on the left hand side of the image */}
       <div className="flex flex-col text-right leading-none">

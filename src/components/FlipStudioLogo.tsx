@@ -1,0 +1,227 @@
+import React from 'react';
+
+interface FlipStudioLogoProps {
+  className?: string;
+  size?: number;
+}
+
+export const FlipStudioLogo: React.FC<FlipStudioLogoProps> = ({ 
+  className = "w-8 h-8", 
+  size 
+}) => {
+  return (
+    <svg
+      viewBox="0 0 512 512"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={size ? { width: size, height: size } : undefined}
+    >
+      <defs>
+        {/* Neon Glow Filters */}
+        <filter id="fs-glow-strong" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="10" result="blur1" />
+          <feGaussianBlur stdDeviation="20" result="blur2" />
+          <feMerge>
+            <feMergeNode in="blur2" />
+            <feMergeNode in="blur1" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter id="fs-glow-soft" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* Gradients */}
+        <linearGradient id="neonCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#c8f9ff" />
+          <stop offset="25%" stopColor="#00f0ff" />
+          <stop offset="70%" stopColor="#0094ff" />
+          <stop offset="100%" stopColor="#004be5" />
+        </linearGradient>
+
+        <linearGradient id="brightCyanGrad" x1="0%" y1="0%" x2="100%" y2="80%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="30%" stopColor="#67e8f9" />
+          <stop offset="80%" stopColor="#06b6d4" />
+          <stop offset="100%" stopColor="#0284c7" />
+        </linearGradient>
+
+        <linearGradient id="deepBlueGrad" x1="10%" y1="0%" x2="90%" y2="100%">
+          <stop offset="0%" stopColor="#00e5ff" />
+          <stop offset="40%" stopColor="#0284c7" />
+          <stop offset="80%" stopColor="#0348a6" />
+          <stop offset="100%" stopColor="#071e54" />
+        </linearGradient>
+
+        <linearGradient id="highlightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* Dark Ambient Glow Backplate (Subtle) */}
+      <circle cx="256" cy="256" r="230" fill="#00e5ff" opacity="0.08" filter="url(#fs-glow-strong)" />
+
+      <g filter="url(#fs-glow-soft)">
+        {/* === TOP BACKGROUND ACCENT WINGS === */}
+        {/* Upper rear wing tip outline */}
+        <path
+          d="M246 64 L388 68 L364 116 L278 108 Z"
+          fill="none"
+          stroke="#00f0ff"
+          strokeWidth="6"
+          strokeLinejoin="round"
+          opacity="0.85"
+        />
+
+        {/* Upper rear wing body */}
+        <path
+          d="M248 66 L386 70 L362 114 L280 106 Z"
+          fill="url(#deepBlueGrad)"
+          opacity="0.6"
+        />
+
+        {/* Middle rear wing accent */}
+        <path
+          d="M320 120 L448 126 L420 166 L340 156 Z"
+          fill="none"
+          stroke="#00f0ff"
+          strokeWidth="5"
+          strokeLinejoin="round"
+          opacity="0.7"
+        />
+
+        {/* === LEFT FLIPPING PAGES STACK (Spine Leaves) === */}
+        {/* Leaf 1 (Outermost Left Spine Wing) */}
+        <path
+          d="M228 474 C164 456 94 382 74 278 C62 216 78 154 112 120 C122 138 136 172 144 204 C158 266 182 388 228 474 Z"
+          fill="url(#deepBlueGrad)"
+          stroke="#00f0ff"
+          strokeWidth="6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M112 120 C78 154 62 216 74 278 C94 382 164 456 228 474"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="5"
+          opacity="0.9"
+        />
+
+        {/* Leaf 2 (Second Spine Wing) */}
+        <path
+          d="M234 464 C184 430 126 352 114 260 C106 200 134 136 156 104 C166 128 178 166 186 204 C198 268 214 380 234 464 Z"
+          fill="url(#neonCyanGrad)"
+          stroke="#38bdf8"
+          strokeWidth="5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M156 104 C134 136 106 200 114 260 C126 352 184 430 234 464"
+          fill="none"
+          stroke="#c8f9ff"
+          strokeWidth="4"
+          opacity="0.85"
+        />
+
+        {/* Leaf 3 (Third Spine Wing) */}
+        <path
+          d="M246 470 C206 414 156 332 152 246 C150 186 178 126 208 84 C216 114 224 156 228 198 C234 274 240 382 246 470 Z"
+          fill="url(#brightCyanGrad)"
+          stroke="#00f0ff"
+          strokeWidth="5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M208 84 C178 126 150 186 152 246 C156 332 206 414 246 470"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="4"
+          opacity="0.95"
+        />
+
+        {/* Leaf 4 (Fourth Inner Spine Arch) */}
+        <path
+          d="M260 478 C232 408 192 318 194 238 C196 178 226 120 256 74 C262 108 266 154 266 196 C266 280 262 388 260 478 Z"
+          fill="url(#neonCyanGrad)"
+          stroke="#00f0ff"
+          strokeWidth="5"
+          strokeLinejoin="round"
+        />
+
+        {/* === MAIN UPPER 'F' HORIZONTAL PAGE SWEEP === */}
+        <path
+          d="M188 288 C176 216 202 144 264 96 C304 66 372 82 448 116 L384 186 C336 170 286 182 254 214 C226 242 206 282 188 288 Z"
+          fill="url(#brightCyanGrad)"
+          stroke="#00f0ff"
+          strokeWidth="7"
+          strokeLinejoin="round"
+        />
+        {/* Top Blade Highlight Edge */}
+        <path
+          d="M264 96 C304 66 372 82 448 116 L384 186"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
+        <path
+          d="M272 106 C308 82 364 96 428 124"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="3"
+          opacity="0.9"
+        />
+
+        {/* === MIDDLE 'F' HORIZONTAL PAGE SWEEP === */}
+        <path
+          d="M198 344 C204 290 236 244 286 226 C330 210 382 230 436 246 L386 308 C344 300 306 312 284 336 C256 366 240 404 234 446 C224 406 214 368 198 344 Z"
+          fill="url(#brightCyanGrad)"
+          stroke="#00f0ff"
+          strokeWidth="6"
+          strokeLinejoin="round"
+        />
+        {/* Middle Blade Highlight Edge */}
+        <path
+          d="M286 226 C330 210 382 230 436 246 L386 308"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M296 238 C332 226 374 240 418 254"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="2.5"
+          opacity="0.9"
+        />
+
+        {/* === LOWER SWOOPING TAIL (Bottom of 'F') === */}
+        <path
+          d="M234 446 C240 404 256 366 284 336 C270 382 264 430 282 488 C266 484 248 468 234 446 Z"
+          fill="url(#neonCyanGrad)"
+          stroke="#00f0ff"
+          strokeWidth="5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M284 336 C270 382 264 430 282 488"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+      </g>
+    </svg>
+  );
+};
+
+export default FlipStudioLogo;

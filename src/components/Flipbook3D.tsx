@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { BookSettings, PageData, Hotspot } from '../types/flipbook';
 import { audioEngine } from '../utils/audio';
+import { FlipStudioLogo } from './FlipStudioLogo';
 
 interface Flipbook3DProps {
   pages: PageData[];
@@ -1065,8 +1066,8 @@ export const Flipbook3D: React.FC<Flipbook3DProps> = ({
         {isConverting && (
           <div className="flex flex-col items-center justify-center text-center p-8 bg-[#0f172a]/90 backdrop-blur-xl border border-[#2d3449] rounded-2xl shadow-2xl max-w-md z-30 space-y-4 animate-in zoom-in-95">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full border-4 border-[#222a3d] border-t-[#8083ff] animate-spin flex items-center justify-center" />
-              <Layers className="w-6 h-6 text-[#8083ff] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+              <div className="w-16 h-16 rounded-full border-4 border-[#222a3d] border-t-[#00f0ff] animate-spin flex items-center justify-center" />
+              <FlipStudioLogo className="w-8 h-8 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
 
             <div className="space-y-1">

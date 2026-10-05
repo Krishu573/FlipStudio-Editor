@@ -296,6 +296,14 @@ export function useSupabaseProfile() {
     }
   }, [refreshProfile]);
 
+  const updateProfile = useCallback((updates: Partial<UserProfile>) => {
+    setProfile((prev) => {
+      const updated = { ...prev, ...updates };
+      saveLocalUserProfile(updated);
+      return updated;
+    });
+  }, []);
+
   return {
     profile,
     userProfile: profile,
@@ -303,6 +311,7 @@ export function useSupabaseProfile() {
     isLoading: loading,
     error,
     refreshProfile,
+    updateProfile,
     isConfigured: isSupabaseConfigured,
     isSupabaseConfigured,
   };
